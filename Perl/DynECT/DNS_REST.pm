@@ -11,9 +11,6 @@ use LWP::UserAgent;
 use JSON;
 use Data::Dumper;
 
-#TODO: Write documentation with POD
-#TODO: Add keepalive
-
 #Constructor
 sub new {	
 	#reference to self if first argument passed in
@@ -68,7 +65,6 @@ sub login {
 sub logout {
 	#get self id
 	my $classid = shift;
-	#TODO: Set message if API token not set
 	#existance of the API key means we are logged in
 	if ( $$classid{'apitoken'} ) {
 		#Logout of the API, to be nice
