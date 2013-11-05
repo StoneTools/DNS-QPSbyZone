@@ -132,8 +132,6 @@ my @csvhead = ( 'Zones' );
 
 for ( my $i = 0; $i<$range; $i++ ) {
 	push ( @csvhead, $dt_start->ymd('-'));
-	print $dt_start->ymd('-');
-	print " - $i\n";
 
 	#set start timestamp to start of that day
 	$api_param{ 'start_ts' } = $dt_start->epoch();
@@ -144,7 +142,6 @@ for ( my $i = 0; $i<$range; $i++ ) {
 	$dynect->request ( '/REST/QPSReport', 'POST', \%api_param)
 		or die $dynect->message;
 
-	print Dumper $dynect->result if ($i <4 );
 	#Break apart response CSV on line breaks to hand to CSV handler
 	my @lines = split /\n/, $dynect->result->{'data'}{'csv'};
 
