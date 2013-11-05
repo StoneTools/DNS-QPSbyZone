@@ -49,7 +49,7 @@ Options:
 	-h --help	Show this help message and exit
 	-s --start	Define an start date for the data range in YYYY-MM-DD format
 	-d --days	Define total number of days to include in date range
-    -f --file	Filename to write csv report
+	-f --file	Filename to write csv report
 
 Usage:
 	perl QPS_calc.pl
