@@ -1,0 +1,61 @@
+Dyn Inc, Integration Team Deliverable
+"Copyright © 2013, Dyn Inc.
+All rights reserved.
+ 
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+ 
+* Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+ 
+* Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+ 
+* Neither the name of Dynamic Network Services, Inc. nor the names of
+  its contributors may be used to endorse or promote products derived
+  from this software without specific prior written permission.
+ 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+
+___________________________________________________________________________________
+
+This script queries the DynECT API for daily break down of QPS usage
+and summarizes peak QPS per zone in a CSV file (default: report.csv)
+As this data is only retained for a 90 day window, this script will 
+automatically truncate any requests outside of those bound and will
+default to the full 90 day range with no options given.
+
+The credentials are read out of a configuration file in the
+same directory name config.cfg in the format:
+
+[Dynect]
+un: user_name
+cn: customer_name
+pn: password
+
+Options:
+	-h --help	Show this help message and exit
+	-s --start	Define an start date for the data range in YYYY-MM-DD format
+	-d --days	Define total number of days to include in date range
+    -f --file	Filename to write csv report
+
+Usage:
+	perl QPS_calc.pl
+		Creates a CSV file (report.csv) of the previous 90 days of data broken down by
+		zone and daily QPS peak
+
+	perl QPS_calc.pl -s 2013-09-27 -d 10 -f dyn.csv
+		Creates a CSV file (dyn.csv) of 10 days of data starting 2013-09-27 
+		(inclusive) broken down by zone and daily QPS
