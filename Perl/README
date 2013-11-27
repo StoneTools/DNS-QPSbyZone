@@ -59,3 +59,17 @@ Usage:
 	perl QPS_calc.pl -s 2013-09-27 -d 10 -f dyn.csv
 		Creates a CSV file (dyn.csv) of 10 days of data starting 2013-09-27 
 		(inclusive) broken down by zone and daily QPS
+
+
+___________________________________________________________________________________
+
+This script depends on the following modules:
+
+Config::Simple
+DateTime
+Getopt::Long
+JSON
+LWP::UserAgent
+LWP::Protocol::https
+Text::CSV_XS
+Time::Local

@@ -10,7 +10,6 @@ use warnings;
 use LWP::UserAgent;
 use LWP::Protocol::https;
 use JSON;
-use Data::Dumper;
 
 #Constructor
 sub new {	
