@@ -11,7 +11,7 @@ use DateTime;
 
 #Import DynECT handler
 use FindBin;
-use lib "$FindBin::Bin/DynECT";  # use the parent directory
+use lib $FindBin::Bin;  # use the parent directory
 require DynECT::DNS_REST;
 
 
