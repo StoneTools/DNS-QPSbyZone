@@ -11,6 +11,11 @@ use LWP::UserAgent;
 use LWP::Protocol::https;
 use JSON;
 
+#TODO: Write documentation with POD
+#TODO: Add hash to store error messag
+#TODO: method to access last call
+#TODO: debug mode
+
 #Constructor
 sub new {	
 	#reference to self if first argument passed in
@@ -78,20 +83,20 @@ sub keepalive {
 
 sub logout {
 	#get self id
-	my $self = shift;
+	my $self = shift @_;
 	#TODO: Set message if API token not set
 	#existance of the API key means we are logged in
-	if ( $$self{'apitoken'} ) {
+	if ( defined $$self{'apitoken'} ) {
 		#Logout of the API, to be nice
-		my $api_request = HTTP::Request->new('DELETE','https://api.dynect.net/REST/Session');
-		$api_request->header ( 'Content-Type' => 'application/json', 'Auth-Token' => $$self{'apitoken'} );
-		my $api_result = $$self{'lwp'}->request( $api_request );
-		my $res =  $self->check_res( $api_result );
+		my $res = $self->request( 'OVERRIDESESSION', 'DELETE');
 		if ( $res ) {
+			$$self{ 'message' } = "Session logout successful";
 			undef $$self{'apitoken'};
 			$$self{'message'} = "Logout successful";
 		}
-		
+		else {
+			$$self{'message'} = "API Session not available for logout.  Please use ->login to create a session";
+		}
 		return $res;
 	}
 }
@@ -141,86 +146,67 @@ sub request {
 		$api_request->content( to_json( $paramref ) );
 	}
 	$api_request->header ( 'Content-Length' => length( $api_request->content ) )  if ( $method eq 'PUT' );
-
-
-
 	my $api_result = $$self{'lwp'}->request( $api_request );
 
-	#check if call succeeded
-	my $res =  $self->check_res( $api_result );
-
-	# If $res, set the message
-	$$self{'message'} = "Request ( $uri, $method) successful" if $res;
-	
-	return $res;
-}
-
-
-sub check_res {
-	#grab self reference
-	my ($self, $api_result)  = @_;
-
-	#Fail out if we get an error code and the content is not in JSON format (weak test)
-	if ( $api_result->is_error && ( substr( $api_result->content, 0, 1 ) ne '{' ) ) { 
-		$$self{'message'} = "HTTPS Error: " . $api_result->status_line;
-		return 0;
-	}
-
-	#on initial redirect the result->code is the URI to the Job ID
-	#Calling the /REST/Job will return JSON in the content of status 
-	while ($api_result->is_redirect ) {
-		sleep 1;
-		my $api_request = HTTP::Request->new('GET', "https://api.dynect.net" . $api_result->content);
-		$api_request->header ( 'Content-Type' => 'application/json', 'Auth-Token' => $$self{'apitoken'} );
-		$api_result = $$self{'lwp'}->request( $api_request );
+	$$self{'resultref'} = decode_json ( $api_result->content ) if ( $api_result->is_success );
+	until ( $api_result->is_success ) {
 		#Fail out if we get an error code and the content is not in JSON format (weak test)
 		if ( $api_result->is_error && ( substr( $api_result->content, 0, 1 ) ne '{' ) ) { 
 			$$self{'message'} = "HTTPS Error: " . $api_result->status_line;
 			return 0;
 		}
-	}
-
-	#now safe to decode JSON
-	$$self{'resultref'} = decode_json ( $api_result->content );
-
-	#loop until the job id comes back as success or program dies
-	while ( $$self{'resultref'}{'status'} ne 'success' ) {
-		if ( $$self{'resultref'}{'status'} ne 'incomplete' ) {
-			#api stauts != sucess || incomplete would indicate an API failure
-			#Blank out stored message to do appends
-			$$self{'message'} = '';
-			foreach my $msgref ( @{$$self{'resultref'}{'msgs'}} ) {
-				if ( length $$self{'message'} == 0 ) {
-					#put in header is still blank
-					$$self{'message'} .= "API Error:";
-				}
-				else {
-					#put in double space if header already exists
-					$$self{'message'} .= "\n";
-				}
-				$$self{'message'} .= "\n\tInfo: $msgref->{'INFO'}" if $msgref->{'INFO'};
-				$$self{'message'} .= "\n\tLevel: $msgref->{'LVL'}" if $msgref->{'LVL'};
-				$$self{'message'} .= "\n\tError Code: $msgref->{'ERR_CD'}" if $msgref->{'ERR_CD'};
-				$$self{'message'} .= "\n\tSource: $msgref->{'SOURCE'}" if $msgref->{'SOURCE'};
-			};
-			$$self{'message'} .= "\n\nStopped ";
-			return 0;
+		#on initial redirect the result->code is the URI to the Job ID
+		#Calling the /REST/Job will return JSON in the content of status 
+		elsif ( $api_result->is_redirect && ( substr( $api_result->content, 0, 1 ) ne '{' ) ) {
+			sleep 1;
+			$api_request = HTTP::Request->new('GET', "https://api.dynect.net" . $api_result->content);
+			$api_request->header ( 'Content-Type' => 'application/json', 'Auth-Token' => $$self{'apitoken'} );
+			$api_request->header ( 'Version' => $$self{'apiver'} ) if ( defined $$self{'apiver'} );
+			$api_result = $$self{'lwp'}->request( $api_request );
+			redo;
 		}
 		else {
-			#status incomplete, wait 2 seconds and check again
-			sleep 2;
-			my $job_uri = "https://api.dynect.net/REST/Job/$$self{'resultref'}{'job_id'}/";
-			my $api_request = HTTP::Request->new('GET',$job_uri);
-			$api_request->header ( 'Content-Type' => 'application/json', 'Auth-Token' => $$self{'apitoken'} );
-			my $api_result = $$self{'lwp'}->request( $api_request );
-			unless ( $api_result->content ) { 
-				$$self{'message'} = "Unable to connect to API.\n Status message -\n\t" . $api_result->status_line;
-				return 0;
+			#now safe to decode JSON
+			$$self{'resultref'} = decode_json ( $api_result->content );
+
+			#loop until the job id comes back as success or program dies
+			if ( $$self{'resultref'}{'status'} ne 'success' ) {
+				if ( $$self{'resultref'}{'status'} ne 'incomplete' ) {
+					#api stauts != ( sucess || incomplete ) would indicate an API failure
+					#Blank out stored message to do appends
+					$$self{'message'} = '';
+					foreach my $msgref ( @{$$self{'resultref'}{'msgs'}} ) {
+						if ( length $$self{'message'} == 0 ) {
+							#put in header is still blank
+							$$self{'message'} .= "API Error:";
+						}
+						else {
+							#put in double space if header already exists
+							$$self{'message'} .= "\n";
+						}
+						$$self{'message'} .= "\n\tInfo: $msgref->{'INFO'}" if $msgref->{'INFO'};
+						$$self{'message'} .= "\n\tLevel: $msgref->{'LVL'}" if $msgref->{'LVL'};
+						$$self{'message'} .= "\n\tError Code: $msgref->{'ERR_CD'}" if $msgref->{'ERR_CD'};
+						$$self{'message'} .= "\n\tSource: $msgref->{'SOURCE'}" if $msgref->{'SOURCE'};
+					};
+					$$self{'message'} .= "\n\nStopped ";
+					return 0;
+				}
+				else {
+					#status incomplete, wait 2 seconds and check again
+					sleep 2;
+					my $job_uri = "https://api.dynect.net/REST/Job/$$self{'resultref'}{'job_id'}/";
+					$api_request = HTTP::Request->new('GET',$job_uri);
+					$api_request->header ( 'Content-Type' => 'application/json', 'Auth-Token' => $$self{'apitoken'} );
+					$api_request->header ( 'Version' => $$self{'apiver'} ) if ( defined $$self{'apiver'} );
+					$api_result = $$self{'lwp'}->request( $api_request );
+					redo;
+				}
 			}
-			$$self{'resultref'} = decode_json( $api_result->content );
 		}
 	}
-	
+
+	$$self{'message'} = "Request ( $uri, $method) successful";
 	return 1;
 }
 

@@ -121,8 +121,6 @@ my $dynect = DynECT::DNS_REST->new;
 $dynect->login( $apicn, $apiun, $apipw) 
 	or die $dynect->message;
 
-
-
 #API Paramater hash
 my %api_param = ( breakdown => 'zones');
 my %zone_store;
@@ -219,6 +217,8 @@ foreach my $zone ( keys %zone_store ){
 
 #close file handle
 close $fh;
+
+
 #logout of the API to be nice
 $dynect->logout;
 
